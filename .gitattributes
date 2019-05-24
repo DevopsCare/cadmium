@@ -1,0 +1,5 @@
+# Let's keep everything identical across systems
+*.tf   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.tpl  text eol=lf

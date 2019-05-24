@@ -1,0 +1,74 @@
+/*
+ * Copyright (c) 2019 Risk Focus Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+def jobParametersList = [
+    'GENERIC'     : [],
+    'K8 Namespace': []
+]
+
+def jobParameters = [
+    string(name: "ENVIRONMENT_NAME", defaultValue: "", description: "Environment name"),
+    choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
+    choice(name: 'SCHEDULE_NAME', choices: ['default', '1h', '4h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe'),
+    string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
+]
+
+jobParameters += jobParametersList.findAll { it.key in GLOBAL_ENABLED_ENVIRONMENT_TYPE }.collect { it.value }.flatten()
+properties([parameters(jobParameters)])
+
+if (!(params.ENVIRONMENT_NAME))
+  error("Parameter ENVIRONMENT_NAME was not supplied, aborting")
+
+// Script scoped vars
+scmVars = null
+cadmium = null
+flavor_params = [:]
+
+ansiColor('xterm') {
+  timestamps {
+    node() {
+      currentBuild.description = "[${params.ENVIRONMENT_NAME}] "
+
+      stage("Reading cadmium.yaml") {
+        git url: params.APPLICATION_REPO, credentialsId: "cadmium", branch: "master"
+        cadmium = readYaml file: 'cadmium.yaml'
+        scmVars = checkout scm
+      }
+
+      stage("Creating environment folder") {
+        jobDsl targets: "dsl/envFolder.groovy", additionalParameters: [
+            ENVIRONMENT_NAME  : params.ENVIRONMENT_NAME,
+            ENVIRONMENT_TYPE  : params.ENVIRONMENT_TYPE,
+            APPLICATION_REPO  : params.APPLICATION_REPO,
+            REPO_URL          : scmVars.GIT_URL,
+            CADMIUM           : cadmium,
+            ORIG_PARAMS_MAP   : params,
+            FLAVOR_PARAMS_MAPS: flavor_params,
+        ]
+      }
+
+      // TODO feels like OOP
+      if (params.ENVIRONMENT_TYPE == 'K8 Namespace')
+        dir('infrastructure_types/k8-namespace') {
+          load 'create.groovy'
+        }
+      else if (params.ENVIRONMENT_TYPE == 'GENERIC')
+        dir('infrastructure_types/generic') {
+          load 'create.groovy'
+        }
+    }
+  }
+}
