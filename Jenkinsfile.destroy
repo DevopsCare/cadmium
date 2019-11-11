@@ -16,7 +16,7 @@
 
 properties([
     parameters([
-        string(name: "ENVIRONMENT_NAME", defaultValue: "", description: "Environment name"),
+        string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
         choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
     ])
 ])
