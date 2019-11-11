@@ -20,7 +20,7 @@ def jobParametersList = [
 ]
 
 def jobParameters = [
-    string(name: "ENVIRONMENT_NAME", defaultValue: "", description: "Environment name"),
+    string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
     choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
     choice(name: 'SCHEDULE_NAME', choices: ['default', '1h', '4h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe'),
     string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
@@ -29,8 +29,8 @@ def jobParameters = [
 jobParameters += jobParametersList.findAll { it.key in GLOBAL_ENABLED_ENVIRONMENT_TYPE }.collect { it.value }.flatten()
 properties([parameters(jobParameters)])
 
-if (!(params.ENVIRONMENT_NAME))
-  error("Parameter ENVIRONMENT_NAME was not supplied, aborting")
+if (!(params.NAMESPACE))
+  error("Parameter NAMESPACE was not supplied, aborting")
 
 // Script scoped vars
 scmVars = null
@@ -40,7 +40,7 @@ flavor_params = [:]
 ansiColor('xterm') {
   timestamps {
     node() {
-      currentBuild.description = "[${params.ENVIRONMENT_NAME}] "
+      currentBuild.description = "[${params.NAMESPACE}] "
 
       stage("Reading cadmium.yaml") {
         git url: params.APPLICATION_REPO, credentialsId: "cadmium", branch: "master"
@@ -50,7 +50,7 @@ ansiColor('xterm') {
 
       stage("Creating environment folder") {
         jobDsl targets: "dsl/envFolder.groovy", additionalParameters: [
-            ENVIRONMENT_NAME  : params.ENVIRONMENT_NAME,
+            NAMESPACE         : params.NAMESPACE,
             ENVIRONMENT_TYPE  : params.ENVIRONMENT_TYPE,
             APPLICATION_REPO  : params.APPLICATION_REPO,
             REPO_URL          : scmVars.GIT_URL,

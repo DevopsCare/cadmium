@@ -19,7 +19,7 @@ podTemplate(label: label, inheritFrom: 'jx-base', serviceAccount: 'jenkins') {
   node(label) {
     stage('Create Environment/Namespace') {
       container('jx-base') {
-        sh "jx ns --create ${params.ENVIRONMENT_NAME}"
+        sh "jx ns --create ${params.NAMESPACE}"
       }
     }
   }

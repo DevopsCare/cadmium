@@ -40,7 +40,7 @@ pipelineJob("$folderName/Create") {
 
 pipelineJob("$folderName/Destroy") {
   parameters {
-    stringParam("ENVIRONMENT_NAME", "", "Environment name")
+    stringParam("NAMESPACE", "", "Environment name")
     stringParam("ENVIRONMENT_TYPE", "", "Platform type")
   }
   definition {

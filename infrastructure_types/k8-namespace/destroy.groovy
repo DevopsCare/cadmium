@@ -19,13 +19,13 @@ podTemplate(label: label, inheritFrom: 'jx-base', serviceAccount: 'jenkins') {
   node(label) {
     stage('Delete Environment/Namespace') {
       container('jx-base') {
-        sh "jx step helm list --namespace ${params.ENVIRONMENT_NAME} 2>&1 | tail -n +2 | cut -f1 | sort | uniq | xargs -n 1 --no-run-if-empty jx step helm delete --namespace ${params.ENVIRONMENT_NAME} --purge ||" +
-            "helm ls --short --namespace ${params.ENVIRONMENT_NAME} | xargs -n 1 --no-run-if-empty helm delete --no-hooks --purge"
+        sh "jx step helm list --namespace ${params.NAMESPACE} 2>&1 | tail -n +2 | cut -f1 | sort | uniq | xargs -n 1 --no-run-if-empty jx step helm delete --namespace ${params.NAMESPACE} --purge ||" +
+            "helm ls --short --namespace ${params.NAMESPACE} | xargs -n 1 --no-run-if-empty helm delete --no-hooks --purge"
 
-        sh "kubectl get ns ${params.ENVIRONMENT_NAME} && kubectl delete ns --grace-period=1 ${params.ENVIRONMENT_NAME} || true"
+        sh "kubectl get ns ${params.NAMESPACE} && kubectl delete ns --grace-period=1 ${params.NAMESPACE} || true"
       }
     }
   }
 }
 
-currentBuild.description = "Destroyed ${params.ENVIRONMENT_NAME} successfully"
+currentBuild.description = "Destroyed ${params.NAMESPACE} successfully"

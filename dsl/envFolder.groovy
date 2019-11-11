@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-folder("${ENVIRONMENT_NAME}") {
+folder("${NAMESPACE}") {
   description("""<table><tr><td>
-Folder for environment - $ENVIRONMENT_NAME
+Folder for environment - $NAMESPACE
 <ul>
 ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template)}'>${title}</a>" }.join()}
 </ul>
@@ -28,16 +28,26 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
 </p></td>
 </table>
 """)
+  properties {
+    folderProperties {
+      properties {
+        stringProperty {
+          key('NAMESPACE')
+          value(NAMESPACE)
+        }
+      }
+    }
+  }
 }
 
 CADMIUM.apps.each { app, settings ->
   if (settings.build && settings.build.type == "jenkinsfile") {
-    jenkinsfileTypeJob("${ENVIRONMENT_NAME}/${app}", settings.repo, settings.build.location ?: 'Jenkinsfile')
+    jenkinsfileTypeJob("${NAMESPACE}/${app}", settings.repo, settings.build.location ?: 'Jenkinsfile')
   }
 }
 
 if (CADMIUM.settings?.enableRecreateCluster)
-  pipelineJob("$ENVIRONMENT_NAME/Re-create Cluster") {
+  pipelineJob("$NAMESPACE/Re-create Cluster") {
     definition {
       cps {
         sandbox(true)
@@ -53,7 +63,7 @@ if (CADMIUM.settings?.enableRecreateCluster)
     }
   }
 
-pipelineJob("$ENVIRONMENT_NAME/Destroy Environment") {
+pipelineJob("$NAMESPACE/Destroy Environment") {
   parameters {
     booleanParam('DELETE_JOB_FOLDER', true)
   }
@@ -76,13 +86,13 @@ pipelineJob("$ENVIRONMENT_NAME/Destroy Environment") {
                     stage("Destroy Infrastructure") {
                         build job: '/Infrastructure/Destroy',
                             parameters: [
-                                string(name: 'ENVIRONMENT_NAME', value: '$ENVIRONMENT_NAME'),
+                                string(name: 'NAMESPACE', value: '$NAMESPACE'),
                                 string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
                             ],
                             wait: true
 
                         if (params.DELETE_JOB_FOLDER)
-                            Jenkins.instance.getItemByFullName('$ENVIRONMENT_NAME').delete()
+                            Jenkins.instance.getItemByFullName('$NAMESPACE').delete()
                     }
                 }
                 """.stripIndent())
@@ -129,8 +139,8 @@ def jenkinsfileTypeJob(GString envName, repo, String script) {
 
 def myTemplate(template) {
   vars = [
-      ENV_FQDN: "${ENVIRONMENT_NAME}.${PROJECT_PREFIX}.${GLOBAL_FQDN ?: 'example.com'}",
-      ENV     : "${ENVIRONMENT_NAME}"
+      ENV_FQDN: "${NAMESPACE}.${PROJECT_PREFIX}.${GLOBAL_FQDN ?: 'example.com'}",
+      ENV     : "${NAMESPACE}"
   ]
   template.replaceAll(/\$\{(\w+)\}/) { k -> vars[k[1]] ?: k[0] }
 }
