@@ -42,7 +42,10 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
 
 CADMIUM.apps.each { app, settings ->
   if (settings.build && settings.build.type == "jenkinsfile") {
-    jenkinsfileTypeJob("${NAMESPACE}/${app}", settings.repo, settings.build.location ?: 'Jenkinsfile')
+    def parsedPath = new URI(settings.repo).getPath().split('/')
+    def repoOwner = parsedPath[-2]
+    def repoName = parsedPath[-1] - '.git'
+    jenkinsfileTypeJob("${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location ?: 'Jenkinsfile')
   }
 }
 
@@ -100,15 +103,25 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
   }
 }
 
-def jenkinsfileTypeJob(GString envName, repo, String script) {
+def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepoUrl, String script) {
   multibranchPipelineJob(envName) {
     branchSources {
       branchSource {
         source {
-          git {
-            id 'origin'
-            remote(repo)
+          github {
+            id('origin')
+            repositoryUrl(inputRepoUrl)
+            repoOwner(inputRepoOwner)
+            repository(inputRepoName)
+            configuredByUrl(false)
             credentialsId('cadmium')
+            traits {
+                cleanBeforeCheckoutTrait()
+                gitHubBranchDiscovery {
+                    strategyId(1)
+                }
+                gitHubTagDiscovery()
+            }
           }
         }
         strategy {
@@ -132,7 +145,7 @@ def jenkinsfileTypeJob(GString envName, repo, String script) {
     }
     configure {
       def traits = it / sources / data / 'jenkins.branch.BranchSource' / source / traits
-      traits << 'jenkins.plugins.git.traits.BranchDiscoveryTrait' {}
+      traits << 'org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait' {strategyId(1)}
     }
   }
 }
