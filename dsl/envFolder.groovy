@@ -43,6 +43,9 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
 CADMIUM.apps.each { app, settings ->
   if (settings.build && settings.build.type == "jenkinsfile") {
     def parsedPath = new URI(settings.repo).getPath().split('/')
+    if (parsedPath.size() < 2) {
+        throw new Exception("Can't parse github repo url: ${settings.repo}")
+    }
     def repoOwner = parsedPath[-2]
     def repoName = parsedPath[-1] - '.git'
     jenkinsfileTypeJob("${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location ?: 'Jenkinsfile')
