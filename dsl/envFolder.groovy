@@ -43,6 +43,9 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
 CADMIUM.apps.each { app, settings ->
   if (settings.build && settings.build.type == "jenkinsfile") {
     def parsedPath = new URI(settings.repo).getPath().split('/')
+    if (parsedPath.size() < 2) {
+        throw new Exception("Can't parse github repo url: ${settings.repo}")
+    }
     def repoOwner = parsedPath[-2]
     def repoName = parsedPath[-1] - '.git'
     jenkinsfileTypeJob("${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location ?: 'Jenkinsfile')
@@ -75,14 +78,25 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
       sandbox(true)
 
       DESTROY_ENV_STAGE = ""
-      if (CADMIUM.undeploy.type == "job") {
-        DESTROY_ENV_STAGE = """
+
+      switch(CADMIUM.undeploy.type) {
+        case "job":
+          DESTROY_ENV_STAGE = """
             stage("Force destroy Environment") {
               build job: '${CADMIUM.undeploy.jobName}',
                   wait: true
             }
             """
+          break
+        case "inline":
+          DESTROY_ENV_STAGE = """
+            stage("Force destroy Environment") {
+              ${CADMIUM.undeploy.script}
+            }
+            """    
+          break
       }
+
       script("""
                 node() {
                     ${DESTROY_ENV_STAGE}
