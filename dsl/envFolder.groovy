@@ -78,14 +78,25 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
       sandbox(true)
 
       DESTROY_ENV_STAGE = ""
-      if (CADMIUM.undeploy.type == "job") {
-        DESTROY_ENV_STAGE = """
+
+      switch(CADMIUM.undeploy.type) {
+        case "job":
+          DESTROY_ENV_STAGE = """
             stage("Force destroy Environment") {
               build job: '${CADMIUM.undeploy.jobName}',
                   wait: true
             }
             """
+          break
+        case "inline":
+          DESTROY_ENV_STAGE = """
+            stage("Force destroy Environment") {
+              ${CADMIUM.undeploy.script}
+            }
+            """    
+          break
       }
+
       script("""
                 node() {
                     ${DESTROY_ENV_STAGE}
