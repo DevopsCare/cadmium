@@ -22,7 +22,7 @@ def jobParametersList = [
 def jobParameters = [
   string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
   choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
-  choice(name: 'SCHEDULE_NAME', choices: ['default', '1h', '4h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe'),
+  choice(name: 'SCHEDULE_NAME', choices: ['default', 'new-york-plus-riga-weekdays', 'new-york-weekdays', 'riga-weekdays', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe'),
   string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
 ]
 
