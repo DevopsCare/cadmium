@@ -141,7 +141,7 @@ def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepo
             configuredByUrl(false)
             credentialsId('cadmium')
             traits {
-              cleanBeforeCheckoutTrait()
+              // TODO figure out proper syntax to invoke this: cleanBeforeCheckoutTrait(cleanBeforeCheckout())
               gitHubBranchDiscovery {
                 strategyId(1)
               }
