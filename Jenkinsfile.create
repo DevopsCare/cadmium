@@ -50,7 +50,7 @@ ansiColor('xterm') {
 
       stage("Creating environment folder") {
         def schedule = params.SCHEDULE_NAME
-        if (cadmium.schedule) {
+        if (cadmium.schedule && schedule == 'default') {
           schedule = cadmium.schedule
         }
 
