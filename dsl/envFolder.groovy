@@ -205,12 +205,10 @@ def inlineTypeJob(jobPath, jobScript) {
       cps {
         sandbox(true)
         script("""
-          node() {
-            stage("Run job script") {
-              ${jobScript}
-            }
+          stage("Run job script") {
+            ${jobScript}
           }
-          """.stripIndent())
+        """.stripIndent())
       }
     }
   }
