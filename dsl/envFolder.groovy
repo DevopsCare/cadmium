@@ -45,20 +45,32 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
 }
 
 CADMIUM.apps.each { app, settings ->
-  if (settings.build && settings.build.type == "jenkinsfile") {
-    def parsedPath = new URI(settings.repo).getPath().split('/')
-    if (parsedPath.size() < 2) {
-      throw new Exception("Can't parse github repo url: ${settings.repo}")
-    }
-    def repoOwner = parsedPath[-2]
-    def repoName = parsedPath[-1] - '.git'
-
-    if (settings.folder) {
-      folder("${NAMESPACE}/${settings.folder}") {
-        jenkinsfileTypeJob "${NAMESPACE}/${settings.folder}/${app}", repoOwner, repoName, settings.repo, settings.build.location
-      }
-    } else {
-      jenkinsfileTypeJob "${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+  if (settings.build) {
+    switch (settings.build.type) {
+      case "jenkinsfile":
+        def parsedPath = new URI(settings.repo).getPath().split('/')
+        if (parsedPath.size() < 2) {
+          throw new Exception("Can't parse github repo url: ${settings.repo}")
+        }
+        def repoOwner = parsedPath[-2]
+        def repoName = parsedPath[-1] - '.git'
+        if (settings.folder) {
+          folder("${NAMESPACE}/${settings.folder}") {
+            jenkinsfileTypeJob "${NAMESPACE}/${settings.folder}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+          }
+        } else {
+          jenkinsfileTypeJob "${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+        }
+        break
+      case "inline":
+        if (settings.folder) {
+          folder("${NAMESPACE}/${settings.folder}") {
+            inlineTypeJob "${NAMESPACE}/${settings.folder}/${app}", settings.build.script
+          }
+        } else {
+            inlineTypeJob "${NAMESPACE}/${app}", settings.build.script
+        }
+        break
     }
   }
 }
@@ -184,4 +196,22 @@ def myTemplate(template) {
     ENV     : "${NAMESPACE}"
   ]
   template.replaceAll(/\$\{(\w+)\}/) { k -> vars[k[1]] ?: k[0] }
+}
+
+
+def inlineTypeJob(jobPath, jobScript) {
+  pipelineJob(jobPath) {
+    definition {
+      cps {
+        sandbox(true)
+        script("""
+          node() {
+            stage("Run job script") {
+              ${jobScript}
+            }
+          }
+          """.stripIndent())
+      }
+    }
+  }
 }
