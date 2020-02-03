@@ -49,10 +49,15 @@ ansiColor('xterm') {
       }
 
       stage("Creating environment folder") {
+        def schedule = params.SCHEDULE_NAME
+        if (cadmium.schedule && schedule == 'default') {
+          schedule = cadmium.schedule
+        }
+
         jobDsl targets: "dsl/envFolder.groovy", additionalParameters: [
           NAMESPACE         : params.NAMESPACE,
           ENVIRONMENT_TYPE  : params.ENVIRONMENT_TYPE,
-          SCHEDULE_NAME     : params.SCHEDULE_NAME,
+          SCHEDULE_NAME     : schedule,
           APPLICATION_REPO  : params.APPLICATION_REPO,
           REPO_URL          : scmVars.GIT_URL,
           CADMIUM           : cadmium,
