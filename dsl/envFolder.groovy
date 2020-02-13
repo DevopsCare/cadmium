@@ -222,12 +222,12 @@ if (!CADMIUM.settings?.disableRhodiumIntegration) {
     echo response.content
     """
 
-    inlineTypeJob("${NAMESPACE}/Cadmium Start Environment", startScript)
+    inlineTypeJob("${NAMESPACE}/Start Environment", startScript)
 
     def stopScript = """
     def response = httpRequest url: "${rhodiumUrl}/stop/${NAMESPACE}", httpMode: "PUT"
     echo response.content
     """
 
-    inlineTypeJob("${NAMESPACE}/Cadmium Stop Environment", stopScript)
+    inlineTypeJob("${NAMESPACE}/Stop Environment", stopScript)
 }
