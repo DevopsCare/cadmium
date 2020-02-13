@@ -213,3 +213,21 @@ def inlineTypeJob(jobPath, jobScript) {
     }
   }
 }
+
+if (!CADMIUM.settings?.disableRhodiumIntegration) {
+    def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
+
+    def startScript = """
+    def response = httpRequest url: "${rhodiumUrl}/start/${NAMESPACE}", httpMode: "PUT"
+    echo response.content
+    """
+
+    inlineTypeJob("${NAMESPACE}/Start Environment", startScript)
+
+    def stopScript = """
+    def response = httpRequest url: "${rhodiumUrl}/stop/${NAMESPACE}", httpMode: "PUT"
+    echo response.content
+    """
+
+    inlineTypeJob("${NAMESPACE}/Stop Environment", stopScript)
+}
