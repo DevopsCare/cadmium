@@ -20,6 +20,7 @@ podTemplate(label: label, inheritFrom: 'jx-base', serviceAccount: 'jenkins') {
     stage('Create Environment/Namespace') {
       container('jx-base') {
         sh "jx ns --create ${params.NAMESPACE}"
+        sh "kubectl label ns ${params.NAMESPACE} --overwrite schedule=${schedule}"
       }
     }
   }
