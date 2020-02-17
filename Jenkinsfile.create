@@ -36,6 +36,7 @@ if (!(params.NAMESPACE))
 scmVars = null
 cadmium = null
 flavor_params = [:]
+schedule = params.SCHEDULE_NAME
 
 ansiColor('xterm') {
   timestamps {
@@ -49,7 +50,6 @@ ansiColor('xterm') {
       }
 
       stage("Creating environment folder") {
-        def schedule = params.SCHEDULE_NAME
         if (cadmium.schedule && schedule == 'default') {
           schedule = cadmium.schedule
         }
