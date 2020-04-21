@@ -21,6 +21,9 @@ properties([
     ])
 ])
 
+if (!(params.NAMESPACE))
+  error("Parameter NAMESPACE was not supplied, aborting")
+
 // Script scoped vars
 scmVars = null
 
@@ -28,13 +31,23 @@ node() {
   scmVars = checkout scm
 
   ansiColor('xterm') {
-    if (params.ENVIRONMENT_TYPE == 'K8 Namespace')
-      dir('infrastructure_types/k8-namespace') {
-        load 'destroy.groovy'
-      }
-    else if (params.ENVIRONMENT_TYPE == 'GENERIC')
-      dir('infrastructure_types/generic') {
-        load 'destroy.groovy'
-      }
+    switch (params.ENVIRONMENT_TYPE) {
+      case 'K8 Namespace':
+        if (cadmium.version == '0.1') {
+          dir('infrastructure_types/k8s-jx') {
+            load 'create.groovy'
+          }
+        } else {
+          dir('infrastructure_types/k8s-namespace') {
+            load 'create.groovy'
+          }
+        }
+        break
+      case 'GENERIC':
+        dir('infrastructure_types/generic') {
+          load 'destroy.groovy'
+        }
+        break
+    }
   }
 }

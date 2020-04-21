@@ -15,8 +15,8 @@
  */
 
 def jobParametersList = [
-  'GENERIC'     : [],
-  'K8 Namespace': []
+  'GENERIC'        : [],
+  'K8 Namespace'   : []
 ]
 
 def jobParameters = [
@@ -67,14 +67,24 @@ ansiColor('xterm') {
       }
 
       // TODO feels like OOP
-      if (params.ENVIRONMENT_TYPE == 'K8 Namespace')
-        dir('infrastructure_types/k8-namespace') {
-          load 'create.groovy'
-        }
-      else if (params.ENVIRONMENT_TYPE == 'GENERIC')
-        dir('infrastructure_types/generic') {
-          load 'create.groovy'
-        }
+      switch (params.ENVIRONMENT_TYPE) {
+        case 'K8 Namespace':
+          if (cadmium.version == '0.1') {
+            dir('infrastructure_types/k8s-jx') {
+              load 'create.groovy'
+            }
+          } else {
+            dir('infrastructure_types/k8s-namespace') {
+              load 'create.groovy'
+            }
+          }
+          break
+        case 'GENERIC':
+          dir('infrastructure_types/generic') {
+            load 'create.groovy'
+          }
+          break
+      }
     }
   }
 }
