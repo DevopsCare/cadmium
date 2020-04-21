@@ -69,7 +69,7 @@ ansiColor('xterm') {
       // TODO feels like OOP
       switch (params.ENVIRONMENT_TYPE) {
         case 'K8 Namespace':
-          if (cadmium.version == '0.1') {
+          if (cadmium.version == 0.1) {
             dir('infrastructure_types/k8s-jx') {
               load 'create.groovy'
             }
