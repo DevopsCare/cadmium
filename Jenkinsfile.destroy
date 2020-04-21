@@ -31,11 +31,11 @@ node() {
     switch (params.ENVIRONMENT_TYPE) {
       case 'K8 Namespace':
         if (cadmium.version == '0.1') {
-          dir('infrastructure_types/k8-namespace') {
+          dir('infrastructure_types/k8s-jx') {
             load 'create.groovy'
           }
         } else {
-          dir('infrastructure_types/k8-namespace-v2') {
+          dir('infrastructure_types/k8s-namespace') {
             load 'create.groovy'
           }
         }
