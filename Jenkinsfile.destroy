@@ -21,6 +21,9 @@ properties([
     ])
 ])
 
+if (!(params.NAMESPACE))
+  error("Parameter NAMESPACE was not supplied, aborting")
+
 // Script scoped vars
 scmVars = null
 
