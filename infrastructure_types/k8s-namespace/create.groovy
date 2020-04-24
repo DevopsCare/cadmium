@@ -19,7 +19,7 @@ podTemplate(label: label, inheritFrom: 'kubernetes', serviceAccount: 'jenkins') 
   node(label) {
     stage('Create Environment/Namespace') {
       container('kubectl') {
-        sh "kubectl create ns ${params.NAMESPACE}"
+        sh "kubectl create ns ${params.NAMESPACE} || echo Existed"
         sh "kubectl label ns ${params.NAMESPACE} --overwrite schedule=${schedule}"
       }
     }
