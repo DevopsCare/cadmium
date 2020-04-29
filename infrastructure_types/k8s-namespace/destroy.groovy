@@ -17,13 +17,13 @@
 def label = "cadmium-${UUID.randomUUID().toString()}"
 podTemplate(label: label, inheritFrom: 'kubernetes', serviceAccount: 'jenkins') {
   node(label) {
-    stage('Delete Environment') {
     stage('Delete Namespace') {
       container('kubectl') {
         sh "kubectl delete ns --ignore-not-found=true --grace-period=1 ${params.NAMESPACE}"
       }
-    }    
+    }
   }
 }
+
 
 currentBuild.description = "Destroyed ${params.NAMESPACE} successfully"

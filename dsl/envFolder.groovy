@@ -124,13 +124,21 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
                 node() {
                     ${DESTROY_ENV_STAGE}
                     stage("Destroy Infrastructure") {
+                      if (${CADMIUM.version} == 0.1) {
                         build job: '/Infrastructure/Destroy',
                             parameters: [
                                 string(name: 'NAMESPACE', value: '$NAMESPACE'),
                                 string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
                             ],
                             wait: true
-
+                      } else {
+                        build job: '/Infrastructure/Destroy/master',
+                            parameters: [
+                                string(name: 'NAMESPACE', value: '$NAMESPACE'),
+                                string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
+                            ],
+                            wait: true    
+                      }
                         if (params.DELETE_JOB_FOLDER)
                             Jenkins.instance.getItemByFullName('$NAMESPACE').delete()
                     }

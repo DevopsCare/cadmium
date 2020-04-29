@@ -18,6 +18,7 @@ properties([
     parameters([
         string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
         choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
+        string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml"),
     ])
 ])
 
@@ -42,11 +43,11 @@ node() {
       case 'K8 Namespace':
         if (cadmium.version == 0.1) {
           dir('infrastructure_types/k8s-jx') {
-            load 'create.groovy'
+            load 'destroy.groovy'
           }
         } else {
           dir('infrastructure_types/k8s-namespace') {
-            load 'create.groovy'
+            load 'destroy.groovy'
           }
         }
         break
