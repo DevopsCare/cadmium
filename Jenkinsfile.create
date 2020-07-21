@@ -22,7 +22,8 @@ def jobParametersList = [
 def jobParameters = [
   string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
   choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
-  choice(name: 'SCHEDULE_NAME', choices: ['default', 'new-york-plus-riga-weekdays', 'new-york-weekdays', 'riga-weekdays', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe'),
+  choice(name: 'SCHEDULE_NAME', choices: ['_CUSTOM_', 'default', 'new-york-plus-riga-weekdays', 'new-york-weekdays', 'riga-weekdays', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h', 'us-pacific'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe, to provide custom name - select _CUSTOM_ and use SCHEDULE_NAME_CUSTOM'),
+  string(name: 'SCHEDULE_NAME_CUSTOM', defaultValue: '', description: 'Provide custom schedule name'),
   string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
 ]
 
@@ -36,6 +37,9 @@ if (!(params.NAMESPACE))
 scmVars = null
 cadmium = null
 flavor_params = [:]
+// Default Value
+// Value will be overrided with SCHEDULE_NAME_CUSTOM(if it is provided) or
+// with value from cadmium.yaml if params.SCHEDULE_NAME == 'default'
 schedule = params.SCHEDULE_NAME
 
 ansiColor('xterm') {
@@ -50,7 +54,10 @@ ansiColor('xterm') {
       }
 
       stage("Creating environment folder") {
-        if (cadmium.schedule && schedule == 'default') {
+
+        if (params.SCHEDULE_NAME_CUSTOM) {
+          schedule = params.SCHEDULE_NAME_CUSTOM
+        } else if (cadmium.schedule && schedule == 'default') {
           schedule = cadmium.schedule
         }
 
