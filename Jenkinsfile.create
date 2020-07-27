@@ -15,15 +15,16 @@
  */
 
 def jobParametersList = [
-    'GENERIC'     : [],
-    'K8 Namespace': []
+  'GENERIC'        : [],
+  'K8 Namespace'   : []
 ]
 
 def jobParameters = [
-    string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
-    choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
-    choice(name: 'SCHEDULE_NAME', choices: ['default', '1h', '4h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe'),
-    string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
+  string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
+  choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
+  choice(name: 'SCHEDULE_NAME', choices: ['default', '_CUSTOM_', 'new-york-plus-riga-weekdays', 'new-york-weekdays', 'riga-weekdays', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h', 'us-pacific'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe, to provide custom name - select _CUSTOM_ and use SCHEDULE_NAME_CUSTOM'),
+  string(name: 'SCHEDULE_NAME_CUSTOM', defaultValue: '', description: 'Provide custom schedule name'),
+  string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
 ]
 
 jobParameters += jobParametersList.findAll { it.key in GLOBAL_ENABLED_ENVIRONMENT_TYPE }.collect { it.value }.flatten()
@@ -36,6 +37,10 @@ if (!(params.NAMESPACE))
 scmVars = null
 cadmium = null
 flavor_params = [:]
+// Default Value
+// Value will be overrided with SCHEDULE_NAME_CUSTOM(if it is provided) or
+// with value from cadmium.yaml if params.SCHEDULE_NAME == 'default'
+schedule = params.SCHEDULE_NAME
 
 ansiColor('xterm') {
   timestamps {
@@ -49,26 +54,44 @@ ansiColor('xterm') {
       }
 
       stage("Creating environment folder") {
+
+        if (params.SCHEDULE_NAME_CUSTOM) {
+          schedule = params.SCHEDULE_NAME_CUSTOM
+        } else if (cadmium.schedule && schedule == 'default') {
+          schedule = cadmium.schedule
+        }
+
         jobDsl targets: "dsl/envFolder.groovy", additionalParameters: [
-            NAMESPACE         : params.NAMESPACE,
-            ENVIRONMENT_TYPE  : params.ENVIRONMENT_TYPE,
-            APPLICATION_REPO  : params.APPLICATION_REPO,
-            REPO_URL          : scmVars.GIT_URL,
-            CADMIUM           : cadmium,
-            ORIG_PARAMS_MAP   : params,
-            FLAVOR_PARAMS_MAPS: flavor_params,
+          NAMESPACE         : params.NAMESPACE,
+          ENVIRONMENT_TYPE  : params.ENVIRONMENT_TYPE,
+          SCHEDULE_NAME     : schedule,
+          APPLICATION_REPO  : params.APPLICATION_REPO,
+          REPO_URL          : scmVars.GIT_URL,
+          CADMIUM           : cadmium,
+          ORIG_PARAMS_MAP   : params,
+          FLAVOR_PARAMS_MAPS: flavor_params,
         ]
       }
 
       // TODO feels like OOP
-      if (params.ENVIRONMENT_TYPE == 'K8 Namespace')
-        dir('infrastructure_types/k8-namespace') {
-          load 'create.groovy'
-        }
-      else if (params.ENVIRONMENT_TYPE == 'GENERIC')
-        dir('infrastructure_types/generic') {
-          load 'create.groovy'
-        }
+      switch (params.ENVIRONMENT_TYPE) {
+        case 'K8 Namespace':
+          if (cadmium.version == 0.1) {
+            dir('infrastructure_types/k8s-jx') {
+              load 'create.groovy'
+            }
+          } else {
+            dir('infrastructure_types/k8s-namespace') {
+              load 'create.groovy'
+            }
+          }
+          break
+        case 'GENERIC':
+          dir('infrastructure_types/generic') {
+            load 'create.groovy'
+          }
+          break
+      }
     }
   }
 }

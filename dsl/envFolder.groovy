@@ -23,9 +23,9 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
 <td><p>Env creation time parameters:
 <small><pre>${ORIG_PARAMS_MAP.sort().toString().replace(', ', ',\n')}</pre></small>
 </p>
-<td><p>Flavor parameters:
+<!-- td><p>Flavor parameters:
 <small><pre>${FLAVOR_PARAMS_MAPS.sort().toString().replace(', ', ',\n')}</pre></small>
-</p></td>
+</p></td -->
 </table>
 """)
   properties {
@@ -35,20 +35,43 @@ ${CADMIUM.links.collect { title, template -> "<li><a href='${myTemplate(template
           key('NAMESPACE')
           value(NAMESPACE)
         }
+        stringProperty {
+          key('SCHEDULE_NAME')
+          value(SCHEDULE_NAME)
+        }
       }
     }
   }
 }
 
 CADMIUM.apps.each { app, settings ->
-  if (settings.build && settings.build.type == "jenkinsfile") {
-    def parsedPath = new URI(settings.repo).getPath().split('/')
-    if (parsedPath.size() < 2) {
-        throw new Exception("Can't parse github repo url: ${settings.repo}")
+  if (settings.build) {
+    switch (settings.build.type) {
+      case "jenkinsfile":
+        def parsedPath = new URI(settings.repo).getPath().split('/')
+        if (parsedPath.size() < 2) {
+          throw new Exception("Can't parse github repo url: ${settings.repo}")
+        }
+        def repoOwner = parsedPath[-2]
+        def repoName = parsedPath[-1] - '.git'
+        if (settings.folder) {
+          folder("${NAMESPACE}/${settings.folder}") {
+            jenkinsfileTypeJob "${NAMESPACE}/${settings.folder}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+          }
+        } else {
+          jenkinsfileTypeJob "${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+        }
+        break
+      case "inline":
+        if (settings.folder) {
+          folder("${NAMESPACE}/${settings.folder}") {
+            inlineTypeJob "${NAMESPACE}/${settings.folder}/${app}", settings.build.script
+          }
+        } else {
+            inlineTypeJob "${NAMESPACE}/${app}", settings.build.script
+        }
+        break
     }
-    def repoOwner = parsedPath[-2]
-    def repoName = parsedPath[-1] - '.git'
-    jenkinsfileTypeJob("${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location ?: 'Jenkinsfile')
   }
 }
 
@@ -79,7 +102,7 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
 
       DESTROY_ENV_STAGE = ""
 
-      switch(CADMIUM.undeploy.type) {
+      switch (CADMIUM.undeploy.type) {
         case "job":
           DESTROY_ENV_STAGE = """
             stage("Force destroy Environment") {
@@ -93,7 +116,7 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
             stage("Force destroy Environment") {
               ${CADMIUM.undeploy.script}
             }
-            """    
+            """
           break
       }
 
@@ -101,13 +124,21 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
                 node() {
                     ${DESTROY_ENV_STAGE}
                     stage("Destroy Infrastructure") {
+                      if (${CADMIUM.version} == 0.1) {
                         build job: '/Infrastructure/Destroy',
                             parameters: [
                                 string(name: 'NAMESPACE', value: '$NAMESPACE'),
                                 string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
                             ],
                             wait: true
-
+                      } else {
+                        build job: '/Infrastructure/Destroy/master',
+                            parameters: [
+                                string(name: 'NAMESPACE', value: '$NAMESPACE'),
+                                string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
+                            ],
+                            wait: true    
+                      }
                         if (params.DELETE_JOB_FOLDER)
                             Jenkins.instance.getItemByFullName('$NAMESPACE').delete()
                     }
@@ -117,7 +148,7 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
   }
 }
 
-def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepoUrl, String script) {
+def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepoUrl, String script = 'Jenkinsfile') {
   multibranchPipelineJob(envName) {
     branchSources {
       branchSource {
@@ -130,11 +161,11 @@ def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepo
             configuredByUrl(false)
             credentialsId('cadmium')
             traits {
-                cleanBeforeCheckoutTrait()
-                gitHubBranchDiscovery {
-                    strategyId(1)
-                }
-                gitHubTagDiscovery()
+              // TODO figure out proper syntax to invoke this: cleanBeforeCheckoutTrait(cleanBeforeCheckout())
+              gitHubBranchDiscovery {
+                strategyId(1)
+              }
+              gitHubTagDiscovery()
             }
           }
         }
@@ -148,6 +179,9 @@ def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepo
         }
       }
     }
+    orphanedItemStrategy {
+      discardOldItems()
+    }
     triggers {
       periodic(1440)
     }
@@ -159,15 +193,49 @@ def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepo
     }
     configure {
       def traits = it / sources / data / 'jenkins.branch.BranchSource' / source / traits
-      traits << 'org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait' {strategyId(1)}
+      traits << 'org.jenkinsci.plugins.github__branch__source.OriginPullRequestDiscoveryTrait' { strategyId(1) }
     }
   }
 }
 
 def myTemplate(template) {
   vars = [
-      ENV_FQDN: "${NAMESPACE}.${PROJECT_PREFIX}.${GLOBAL_FQDN ?: 'example.com'}",
-      ENV     : "${NAMESPACE}"
+    ENV_FQDN: "${NAMESPACE}.${PROJECT_PREFIX}.${GLOBAL_FQDN ?: 'example.com'}",
+    ENV     : "${NAMESPACE}"
   ]
   template.replaceAll(/\$\{(\w+)\}/) { k -> vars[k[1]] ?: k[0] }
+}
+
+
+def inlineTypeJob(jobPath, jobScript) {
+  pipelineJob(jobPath) {
+    definition {
+      cps {
+        sandbox(true)
+        script("""
+          stage("Run job script") {
+            ${jobScript}
+          }
+        """.stripIndent())
+      }
+    }
+  }
+}
+
+if (!CADMIUM.settings?.disableRhodiumIntegration) {
+    def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
+
+    def startScript = """
+    def response = httpRequest url: "${rhodiumUrl}/start/${NAMESPACE}", httpMode: "PUT"
+    echo response.content
+    """
+
+    inlineTypeJob("${NAMESPACE}/Start Environment", startScript)
+
+    def stopScript = """
+    def response = httpRequest url: "${rhodiumUrl}/stop/${NAMESPACE}", httpMode: "PUT"
+    echo response.content
+    """
+
+    inlineTypeJob("${NAMESPACE}/Stop Environment", stopScript)
 }

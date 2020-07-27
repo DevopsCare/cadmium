@@ -18,23 +18,44 @@ properties([
     parameters([
         string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
         choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
+        string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml"),
     ])
 ])
 
+if (!(params.NAMESPACE))
+  error("Parameter NAMESPACE was not supplied, aborting")
+
 // Script scoped vars
 scmVars = null
+cadmium = null
 
 node() {
   scmVars = checkout scm
 
+  stage("Reading cadmium.yaml") {
+    git url: params.APPLICATION_REPO, credentialsId: "cadmium", branch: "master"
+    cadmium = readYaml file: 'cadmium.yaml'
+    scmVars = checkout scm
+  }
+
   ansiColor('xterm') {
-    if (params.ENVIRONMENT_TYPE == 'K8 Namespace')
-      dir('infrastructure_types/k8-namespace') {
-        load 'destroy.groovy'
-      }
-    else if (params.ENVIRONMENT_TYPE == 'GENERIC')
-      dir('infrastructure_types/generic') {
-        load 'destroy.groovy'
-      }
+    switch (params.ENVIRONMENT_TYPE) {
+      case 'K8 Namespace':
+        if (cadmium.version == 0.1) {
+          dir('infrastructure_types/k8s-jx') {
+            load 'destroy.groovy'
+          }
+        } else {
+          dir('infrastructure_types/k8s-namespace') {
+            load 'destroy.groovy'
+          }
+        }
+        break
+      case 'GENERIC':
+        dir('infrastructure_types/generic') {
+          load 'destroy.groovy'
+        }
+        break
+    }
   }
 }
