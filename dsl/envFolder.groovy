@@ -48,18 +48,12 @@ CADMIUM.apps.each { app, settings ->
   if (settings.build) {
     switch (settings.build.type) {
       case "jenkinsfile":
-        def parsedPath = new URI(settings.repo).getPath().split('/')
-        if (parsedPath.size() < 2) {
-          throw new Exception("Can't parse github repo url: ${settings.repo}")
-        }
-        def repoOwner = parsedPath[-2]
-        def repoName = parsedPath[-1] - '.git'
         if (settings.folder) {
           folder("${NAMESPACE}/${settings.folder}") {
-            jenkinsfileTypeJob "${NAMESPACE}/${settings.folder}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+            jenkinsfileTypeJob "${NAMESPACE}/${settings.folder}/${app}", app, settings.repo, settings.build.location
           }
         } else {
-          jenkinsfileTypeJob "${NAMESPACE}/${app}", repoOwner, repoName, settings.repo, settings.build.location
+          jenkinsfileTypeJob "${NAMESPACE}/${app}", app, settings.repo, settings.build.location
         }
         break
       case "inline":
@@ -68,7 +62,7 @@ CADMIUM.apps.each { app, settings ->
             inlineTypeJob "${NAMESPACE}/${settings.folder}/${app}", settings.build.script
           }
         } else {
-            inlineTypeJob "${NAMESPACE}/${app}", settings.build.script
+          inlineTypeJob "${NAMESPACE}/${app}", settings.build.script
         }
         break
     }
@@ -148,24 +142,51 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
   }
 }
 
-def jenkinsfileTypeJob(GString envName, inputRepoOwner, inputRepoName, inputRepoUrl, String script = 'Jenkinsfile') {
-  multibranchPipelineJob(envName) {
+def jenkinsfileTypeJob(GString jobPath, appName, repoUrl, String script = 'Jenkinsfile') {
+  multibranchPipelineJob(jobPath) {
+    displayName(appName)
     branchSources {
       branchSource {
         source {
-          github {
-            id('origin')
-            repositoryUrl(inputRepoUrl)
-            repoOwner(inputRepoOwner)
-            repository(inputRepoName)
-            configuredByUrl(false)
-            credentialsId('cadmium')
-            traits {
-              // TODO figure out proper syntax to invoke this: cleanBeforeCheckoutTrait(cleanBeforeCheckout())
-              gitHubBranchDiscovery {
-                strategyId(1)
+          def parsedPath = new URI(repoUrl).getPath().split('/')
+          if (parsedPath.size() < 2) {
+            throw new Exception("Can't parse github repo url: ${repoUrl}")
+          }
+
+          if (repoUrl.contains('github')) {
+            def owner = parsedPath[-2]
+            def project = parsedPath[-1] - '.git'
+            github {
+              id('origin')
+              repositoryUrl(repoUrl)
+              repoOwner(owner)
+              repository(project)
+              configuredByUrl(false)
+              credentialsId('cadmium')
+              traits {
+                // TODO figure out proper syntax to invoke this: cleanBeforeCheckoutTrait(cleanBeforeCheckout())
+                gitHubBranchDiscovery {
+                  strategyId(1)
+                }
+                gitHubTagDiscovery()
               }
-              gitHubTagDiscovery()
+            }
+          }
+          else if (repoUrl.contains('gitlab')) {
+            def owner = parsedPath.getAt(1..-2).join('/')
+            def project = parsedPath.getAt(1..-1).join('/') - '.git'
+            gitLabSCMSource {
+              id("origin")
+              serverName("GitLab")
+              projectOwner(owner)
+              projectPath(project)
+              credentialsId("cadmium")
+              traits {
+                gitLabBranchDiscovery {
+                  strategyId(1)
+                }
+                gitLabTagDiscovery()
+              }
             }
           }
         }
@@ -206,7 +227,6 @@ def myTemplate(template) {
   template.replaceAll(/\$\{(\w+)\}/) { k -> vars[k[1]] ?: k[0] }
 }
 
-
 def inlineTypeJob(jobPath, jobScript) {
   pipelineJob(jobPath) {
     definition {
@@ -223,19 +243,19 @@ def inlineTypeJob(jobPath, jobScript) {
 }
 
 if (!CADMIUM.settings?.disableRhodiumIntegration) {
-    def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
+  def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
 
-    def startScript = """
+  def startScript = """
     def response = httpRequest url: "${rhodiumUrl}/start/${NAMESPACE}", httpMode: "PUT"
     echo response.content
     """
 
-    inlineTypeJob("${NAMESPACE}/Start Environment", startScript)
+  inlineTypeJob("${NAMESPACE}/Start Environment", startScript)
 
-    def stopScript = """
+  def stopScript = """
     def response = httpRequest url: "${rhodiumUrl}/stop/${NAMESPACE}", httpMode: "PUT"
     echo response.content
     """
 
-    inlineTypeJob("${NAMESPACE}/Stop Environment", stopScript)
+  inlineTypeJob("${NAMESPACE}/Stop Environment", stopScript)
 }
