@@ -15,16 +15,22 @@
  */
 
 def jobParametersList = [
-  'GENERIC'        : [],
-  'K8 Namespace'   : []
+  'GENERIC'     : [],
+  'K8 Namespace': []
 ]
+
+def APPLICATION_REPO = "https://github.com/riskfocus/${PROJECT_PREFIX}-infra"
+withFolderProperties {
+  if (env.CADMIUM_YAML_REPO)
+    APPLICATION_REPO = CADMIUM_YAML_REPO
+}
 
 def jobParameters = [
   string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
   choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
   choice(name: 'SCHEDULE_NAME', choices: ['default', '_CUSTOM_', 'new-york-plus-riga-weekdays', 'new-york-weekdays', 'riga-weekdays', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h', 'us-pacific'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe, to provide custom name - select _CUSTOM_ and use SCHEDULE_NAME_CUSTOM'),
   string(name: 'SCHEDULE_NAME_CUSTOM', defaultValue: '', description: 'Provide custom schedule name'),
-  string(name: "APPLICATION_REPO", defaultValue: "https://github.com/riskfocus/${PROJECT_PREFIX}-infra", description: "Application git repo with cadmium.yaml")
+  string(name: "APPLICATION_REPO", defaultValue: APPLICATION_REPO, description: "Application git repo with cadmium.yaml")
 ]
 
 jobParameters += jobParametersList.findAll { it.key in GLOBAL_ENABLED_ENVIRONMENT_TYPE }.collect { it.value }.flatten()
