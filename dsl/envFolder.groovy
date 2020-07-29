@@ -171,8 +171,7 @@ def jenkinsfileTypeJob(GString jobPath, appName, repoUrl, String script = 'Jenki
                 gitHubTagDiscovery()
               }
             }
-          }
-          else if (repoUrl.contains('gitlab')) {
+          } else if (repoUrl.contains('gitlab')) {
             def owner = parsedPath.getAt(1..-2).join('/')
             def project = parsedPath.getAt(1..-1).join('/') - '.git'
             gitLabSCMSource {
@@ -183,6 +182,9 @@ def jenkinsfileTypeJob(GString jobPath, appName, repoUrl, String script = 'Jenki
               credentialsId("cadmium")
               traits {
                 gitLabBranchDiscovery {
+                  strategyId(1)
+                }
+                originMergeRequestDiscoveryTrait {
                   strategyId(1)
                 }
                 gitLabTagDiscovery()
