@@ -18,6 +18,7 @@ def jobParametersList = [
   'GENERIC'        : [],
   'K8 Namespace'   : []
 ]
+def envTypeFolder = ''
 
 def jobParameters = [
   string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
@@ -53,12 +54,35 @@ ansiColor('xterm') {
         scmVars = checkout scm
       }
 
+      // TODO feels like OOP
+      switch (params.ENVIRONMENT_TYPE) {
+        case 'K8 Namespace':
+          if (cadmium.version == 0.1) {
+            envTypeFolder = 'k8s-jx'
+          } else {
+            envTypeFolder = 'k8s-namespace'
+          }
+          break
+        case 'GENERIC':
+          envTypeFolder = 'generic'
+          break
+      }
+
       stage("Creating environment folder") {
 
         if (params.SCHEDULE_NAME_CUSTOM) {
           schedule = params.SCHEDULE_NAME_CUSTOM
         } else if (cadmium.schedule && schedule == 'default') {
           schedule = cadmium.schedule
+        }
+
+        def startJobText = ""
+        def stopJobText = ""
+        if (!cadmium.settings?.disableRhodiumIntegration) {
+          dir("infrastructure_types/${envTypeFolder}") {
+            startJobText = readFile 'start_env.groovy'
+            stopJobText = readFile 'stop_env.groovy'
+          }
         }
 
         jobDsl targets: "dsl/envFolder.groovy", additionalParameters: [
@@ -70,27 +94,13 @@ ansiColor('xterm') {
           CADMIUM           : cadmium,
           ORIG_PARAMS_MAP   : params,
           FLAVOR_PARAMS_MAPS: flavor_params,
+          START_JOB_TEXT    : startJobText,
+          STOP_JOB_TEXT     : stopJobText,
         ]
       }
 
-      // TODO feels like OOP
-      switch (params.ENVIRONMENT_TYPE) {
-        case 'K8 Namespace':
-          if (cadmium.version == 0.1) {
-            dir('infrastructure_types/k8s-jx') {
-              load 'create.groovy'
-            }
-          } else {
-            dir('infrastructure_types/k8s-namespace') {
-              load 'create.groovy'
-            }
-          }
-          break
-        case 'GENERIC':
-          dir('infrastructure_types/generic') {
-            load 'create.groovy'
-          }
-          break
+      dir("infrastructure_types/${envTypeFolder}") {
+        load 'create.groovy'
       }
     }
   }

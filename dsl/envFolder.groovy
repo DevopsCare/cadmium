@@ -137,7 +137,7 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
                                 string(name: 'NAMESPACE', value: '$NAMESPACE'),
                                 string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
                             ],
-                            wait: true    
+                            wait: true
                       }
                         if (params.DELETE_JOB_FOLDER)
                             Jenkins.instance.getItemByFullName('$NAMESPACE').delete()
@@ -223,19 +223,26 @@ def inlineTypeJob(jobPath, jobScript) {
 }
 
 if (!CADMIUM.settings?.disableRhodiumIntegration) {
-    def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
 
-    def startScript = """
-    def response = httpRequest url: "${rhodiumUrl}/start/${NAMESPACE}", httpMode: "PUT"
-    echo response.content
-    """
+    pipelineJob("${NAMESPACE}/Start Environment") {
+      definition {
+        cps {
+          sandbox(true)
+          script("""
+            $START_JOB_TEXT
+          """)
+        }
+      }
+    }
 
-    inlineTypeJob("${NAMESPACE}/Start Environment", startScript)
-
-    def stopScript = """
-    def response = httpRequest url: "${rhodiumUrl}/stop/${NAMESPACE}", httpMode: "PUT"
-    echo response.content
-    """
-
-    inlineTypeJob("${NAMESPACE}/Stop Environment", stopScript)
+    pipelineJob("${NAMESPACE}/Stop Environment") {
+      definition {
+        cps {
+          sandbox(true)
+          script("""
+            $STOP_JOB_TEXT
+          """)
+        }
+      }
+    }
 }
