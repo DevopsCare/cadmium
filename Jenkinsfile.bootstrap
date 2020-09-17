@@ -17,7 +17,7 @@
 pipeline {
   agent any
   parameters {
-    string(name: 'REPO_URL', defaultValue: 'https://github.com/DevopsCare/cadmium.git', description: 'Core Cadmium Repo')
+    string(name: 'REPO_URL', defaultValue: 'https://github.com/riskfocus/cadmium3.git', description: 'Core Cadmium Repo')
     string(name: 'REPO_BRANCH', defaultValue: 'master', description: '')
   }
   stages {
