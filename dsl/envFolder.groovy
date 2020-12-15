@@ -122,14 +122,16 @@ pipelineJob("$NAMESPACE/Destroy Environment") {
                         build job: '/Infrastructure/Destroy',
                             parameters: [
                                 string(name: 'NAMESPACE', value: '$NAMESPACE'),
-                                string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
+                                string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE'),
+                                string(name: 'APPLICATION_REPO', value: '$APPLICATION_REPO')
                             ],
                             wait: true
                       } else {
                         build job: '/Infrastructure/Destroy/master',
                             parameters: [
                                 string(name: 'NAMESPACE', value: '$NAMESPACE'),
-                                string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE')
+                                string(name: 'ENVIRONMENT_TYPE', value: '$ENVIRONMENT_TYPE'),
+                                string(name: 'APPLICATION_REPO', value: '$APPLICATION_REPO')
                             ],
                             wait: true
                       }
