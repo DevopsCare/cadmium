@@ -29,7 +29,7 @@ withFolderProperties {
 def jobParameters = [
   string(name: "NAMESPACE", defaultValue: "", description: "Environment name/Namespace"),
   choice(name: 'ENVIRONMENT_TYPE', choices: GLOBAL_ENABLED_ENVIRONMENT_TYPE, description: 'Platform type'),
-  choice(name: 'SCHEDULE_NAME', choices: ['default', '_CUSTOM_', 'new-york-plus-riga-weekdays', 'new-york-weekdays', 'riga-weekdays', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h', 'us-pacific'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe, to provide custom name - select _CUSTOM_ and use SCHEDULE_NAME_CUSTOM'),
+  choice(name: 'SCHEDULE_NAME', choices: ['default', '_CUSTOM_', 'stop-in-2h', 'stop-in-4h', 'stop-in-8h'].join('\n'), description: 'Start/Stop/lifetime schedule to use (defined in DynamoDB). "default" is safe, to provide custom name - select _CUSTOM_ and use SCHEDULE_NAME_CUSTOM'),
   string(name: 'SCHEDULE_NAME_CUSTOM', defaultValue: '', description: 'Provide custom schedule name'),
   string(name: "APPLICATION_REPO", defaultValue: APPLICATION_REPO, description: "Application git repo with cadmium.yaml")
 ]
