@@ -17,7 +17,7 @@
 def start_label = "cadmium-${UUID.randomUUID().toString()}"
 podTemplate(label: start_label, inheritFrom: 'python', serviceAccount: 'jenkins') {
   node(start_label) {
-    stage('Sumbit start env command') {
+    stage('Submit start env command') {
       container('python') {
         sh "pip3 install -qqq awscurl==0.21"
         script {

@@ -17,7 +17,7 @@
 def stop_label = "cadmium-${UUID.randomUUID().toString()}"
 podTemplate(label: stop_label, inheritFrom: 'python', serviceAccount: 'jenkins') {
   node(stop_label) {
-    stage('Sumbit stop env command') {
+    stage('Submit stop env command') {
       container('python') {
         sh "pip3 install -qqq awscurl==0.21"
         script {
