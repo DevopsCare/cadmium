@@ -19,7 +19,7 @@ podTemplate(label: start_label, inheritFrom: 'python37', serviceAccount: 'jenkin
   node(start_label) {
     stage('Sumbit start env command') {
       container('python') {
-        sh "pip3 install -qqq awscurl awscli"
+        sh "pip3 install -qqq awscurl==0.21"
         script {
           def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
           withFolderProperties {
