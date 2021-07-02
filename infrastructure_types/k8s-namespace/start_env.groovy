@@ -19,7 +19,7 @@ podTemplate(label: start_label, inheritFrom: 'python', serviceAccount: 'jenkins'
   node(start_label) {
     stage('Submit start env command') {
       container('python') {
-        sh "pip3 install -qqq awscurl==0.21"
+        sh "pip3 install -qqq awscli awscurl==0.21"
         script {
           def rhodiumUrl = "https://rhodium.${PROJECT_PREFIX}.${GLOBAL_FQDN}"
           withFolderProperties {
